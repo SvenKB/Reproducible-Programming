@@ -1,0 +1,45 @@
+---
+title: "Week 4 - Exercise"
+author: "Sven Kleine Bardenhorst"
+date: "19 11 2018"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+library(foreach)
+library(ggplot2)
+library(knitr)
+```
+
+```{r}
+#samples <- list()
+sample <- foreach(i=1:100) %do% rnorm(100)
+```
+The absolute bias of sample $i$ is calculated as the deviation from the mean to the true population value $$Bias_i = \mu - \bar{x_i}$$.
+The standard error of the mean is given by the standard error of the sample devided by the square root of the sample size, $$SE_i = \frac{\sigma}{\sqrt(n)}$$.
+The CI is calculated as $$CI_{lower/upper} = \bar{x_i} \pm 1.96*SE_i$$.
+```{r}
+mean <- unlist(foreach(i=1:100) %do% mean(sample[[i]]))
+absolute_bias <- foreach(i=1:100) %do% abs(0 - mean(sample[[i]]))
+se_mean <- foreach(i=1:100) %do% (sqrt(var(sample[[i]])) / sqrt(length(sample[[i]])))
+CI_low <- foreach(i=1:100) %do% (mean(sample[[i]])-1.96*se_mean[[i]])
+CI_high <- foreach(i=1:100) %do% (mean(sample[[i]])+1.96*se_mean[[i]])
+```
+
+```{r}
+indicator <- c()
+indicator[CI_low > 0 | CI_high < 0] <- 0 
+indicator[is.na(indicator)] <- 1
+indicator <- as.factor(indicator)
+data <- data.frame("SampleID" = 1:100,"mean"=mean,"CIL"=unlist(CI_low),"CIH"=unlist(CI_high),"ind" = indicator)
+ggplot(data, aes(x=SampleID, y = mean, col=ind)) +
+    geom_point(size = 2) +
+    geom_errorbar(aes(ymax = CIH, ymin = CIL))
+```
+
+```{r}
+kable(data[data$ind == 0,2:4])
+```
+
+
